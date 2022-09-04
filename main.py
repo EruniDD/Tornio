@@ -7,6 +7,7 @@ import pyvista as pv
 import json
 import time
 
+#asdasd
 DIR = os.path.dirname(os.path.realpath(__file__))
 SETTINGS = json.load(open(f"{DIR}\\settings\\settings.json"))
 
