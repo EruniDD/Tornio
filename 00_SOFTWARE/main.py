@@ -7,7 +7,6 @@ import pyvista as pv
 import json
 import time
 
-#asdasd
 DIR = os.path.dirname(os.path.realpath(__file__))
 SETTINGS = json.load(open(f"{DIR}\\settings\\settings.json"))
 
@@ -57,9 +56,10 @@ def initializePezzo(src):
     dimensioni = [round(abs(pezzo.bounds[0])+abs(pezzo.bounds[1]),2),round(abs(pezzo.bounds[2])+abs(pezzo.bounds[3]),2),round(abs(pezzo.bounds[4])+abs(pezzo.bounds[5]),2)]
     pezzo.scale(
         [
-            0.0625,
+            0.0625, #SONO DI PROVA
             0.0347,
             0.034])
+
     dimensioni = [round(abs(pezzo.bounds[0])+abs(pezzo.bounds[1]),2),round(abs(pezzo.bounds[2])+abs(pezzo.bounds[3]),2),round(abs(pezzo.bounds[4])+abs(pezzo.bounds[5]),2)]
     pezzo['collision'] = np.zeros(pezzo.n_cells, dtype=bool)
     Apezzo = p.add_mesh(pezzo, style='')
@@ -74,11 +74,43 @@ def initializePunta():
     global punta
     global legno
     
-    punta = pv.Cylinder(radius=SETTINGS['Punta']['Radius'], direction=(0,0,1), center=(0,0,SETTINGS['Legno']['Dimensions']['z']+1)).triangulate()
+    punta = pv.Cylinder(radius=SETTINGS['Punta']['Radius'], direction=(0,0,1), center=(0,0,SETTINGS['Legno']['Dimensions']['z']+SETTINGS["Punta"]["Height"]),height=SETTINGS["Punta"]["Height"]).triangulate()
     print(punta.center)
     Apunta = p.add_mesh(punta, color="grey", style='')
     
     return Apunta
+
+def CanGo(direction, quality):
+    global punta
+    global pezzo
+    punta.translate([x * quality for x in direction], inplace=True)
+    collisions = pezzo.collision(punta)[1]
+    if collisions:
+        #torna indietro
+        punta.translate([x * -quality for x in direction], inplace=True)
+        return False
+    else:
+        return True
+
+def GoUp(direction,quality):
+    global legno
+    global punta
+    global pezzo
+    global p
+
+    punta.translate([x * quality for x in direction], inplace=True)
+    collisions = pezzo.collision(punta)[1]
+    height = 0
+    while punta.center[2] <  legno.bounds[5]+SETTINGS["Punta"]["Height"]:
+        collisions = pezzo.collision(punta)[1]
+        if collisions:
+            height += quality
+            punta.translate([0,0,quality], inplace=True)
+            time.sleep(0.1)
+            p.update()
+        else:
+            return height
+
 
 def movement():
     global p
@@ -86,48 +118,26 @@ def movement():
     global legno
     global pezzo
 
-    radius = SETTINGS['Punta']['Radius']
-    direction = (0,1,0)
+    quality = SETTINGS['General']['Quality']
     
+    direction = (0,1,0)
+    #abbasso la punta
+    punta.translate((0,0,-SETTINGS['Punta']["Height"]),inplace=True)
     while True:
-        print(f"can {direction}?")
-        time.sleep(0.5)
-        punta.translate([x *radius for x in direction],inplace=True)
-        n_contacts = pezzo.collision(punta)[1]
-        if n_contacts:
-            print(not n_contacts)
-            punta.translate([x *-radius for x in direction],inplace=True)
-            p.update()
-            time.sleep(5)
+        if CanGo(direction,quality):
+            #posso andarci
+            pass
         else:
-            print(n_contacts)
-        time.sleep(0.5)
+            #non posso andarci
+            #provo ad alzarmi
+            height = GoUp(direction,quality)
+            print(f"devo alzarmi di {round(height,1)}")
+            p.show()
+        time.sleep(0.2)
         p.update()
-
-        '''if punta.center[0]+radius > legno.bounds[1] and direction == (1,0,0): #arrived at end of X
-            direction = (0,1,0)
-            print("turn on z axis")
-        if punta.center[1]+radius > legno.bounds[3] and direction == (0,1,0): #arrived at end of Z
-            direction = (-1,0,0)
-            print("turn on -x axis")
-        if punta.center[0]-radius < legno.bounds[0] and direction == (-1,0,0):
-            direction = (0,-1,0)
-            print("turn on -z axis")
-        if punta.center[1]-radius < legno.bounds[0] and direction == (0,-1,0):
-            #one level down
-            print("Down and down into the deep")
-            punta.translate((0,0,-1),inplace=True)
-            time.sleep(0.1)
-            p.update()
-            direction = (1,0,0)
-        #print(punta.collision(pezzo))
-
-        punta.translate([x *radius for x in direction],inplace=True)
-        n_contacts = pezzo.collision(punta)[1]
-        if n_contacts:
-            print("collision")
-        time.sleep(0.1)
-        p.update()'''
+        #n_contacts = pezzo.collision(punta)[1]
+        #if n_contacts:
+        #    pass
 
 
 def main():
@@ -143,7 +153,6 @@ def main():
     legno = legno.boolean_intersection(pv.Box(bounds=pezzo.bounds).triangulate())
     p.remove_actor(Alegno)
     Alegno = p.add_mesh(legno, style = 'Wireframe')
-    punta.translate((0,0,-1))
     
     p.show(interactive_update=True)
     movement()

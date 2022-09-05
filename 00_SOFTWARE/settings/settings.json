@@ -19,8 +19,12 @@
         "show_grid" : true,
         "show_axes" : true
     },
-    "Punta": {
+    "Punta" : {
         "Name" : "Punta",
-        "Radius" : 0.2
+        "Radius" : 0.2,
+        "Height" : 3
+    },
+    "General" : {
+        "Quality" : 0.1
     }
 }
