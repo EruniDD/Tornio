@@ -112,6 +112,17 @@ def GoUp(direction,quality):
         else:
             return height
 
+def CanDown(quality):
+    global punta
+    global pezzo
+    punta.translate([0,0,-quality], inplace=True)
+    collisions = pezzo.collision(punta)[1]
+    if collisions:
+        #torna indietro
+        punta.translate([0,0,quality], inplace=True)
+        return False
+    else:
+        return True
 
 def movement():
     global p
@@ -124,7 +135,10 @@ def movement():
     direction = (0,1,0)
     #abbasso la punta
     punta.translate((0,0,-SETTINGS['Punta']["Height"]),inplace=True)
+    height = 0
     while True:
+        if height > 0:
+            CanDown()
         if CanGo(direction,quality):
             #posso andarci
             pass
