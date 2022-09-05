@@ -1,5 +1,6 @@
 
 import os
+from tkinter import W
 from pyvista import examples
 import numpy as np
 
