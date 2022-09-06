@@ -81,9 +81,9 @@ def initializePunta():
 
     punta = pv.Cylinder(radius=SETTINGS['Punta']['Radius'], direction=(0,0,1), center=(0,0,SETTINGS['Legno']['Dimensions']['z']+SETTINGS["Punta"]["Height"]),height=SETTINGS["Punta"]["Height"]).triangulate()
     Apunta = p.add_mesh(punta, color="grey", style='Wireframe')
-    AtestoPunta = p.add_text(text=GenerateTestoPunta(),position="left_edge",font_size=10)
+    #AtestoPunta = p.add_text(text=GenerateTestoPunta(),position="left_edge",font_size=10)
     points.append([round(punta.center[0],2),round(punta.center[1],2),round((punta.center[2]-abs(SETTINGS['Punta']['Height']/2)),2)])
-    return [Apunta,AtestoPunta]
+    return [Apunta,0]
 
 def CanGo(direction, quality):
     global punta
@@ -111,7 +111,7 @@ def GoUp(direction,quality):
         if collisions:
             height += quality
             punta.translate([0,0,quality], inplace=True)
-            time.sleep(0.1)
+            #time.sleep(0.1)
             p.update()
         else:
             return height
@@ -137,14 +137,15 @@ def movement(AtestoPunta):
     global points 
 
     quality = SETTINGS['General']['Quality']
-    
+    giri = 1
+
     direction = (0,1,0)
     #abbasso la punta
     punta.translate((0,0,-SETTINGS['Punta']["Height"]),inplace=True)
 
     points.append([round(punta.center[0],2),round(punta.center[1],2),round(punta.center[2]-abs(SETTINGS['Punta']['Height']/2),2)])
     p.add_lines(np.array([points[-2],points[-1]]),color = 'yellow', width = 3)
-    print(points)
+    #print(points)
     p.update()
 
     height = 0
@@ -165,15 +166,24 @@ def movement(AtestoPunta):
             #non posso andarci
             #provo ad alzarmi
             height += GoUp(direction,quality)
-            print(f"devo alzarmi di {round(height,1)}")
+            #print(f"devo alzarmi di {round(height,1)}")
+        if direction == (0,1,0) and punta.center[1] > pezzo.bounds[3]-(quality+(giri*quality)):
+            direction = (1,0,0)
+        if direction == (1,0,0) and punta.center[0] > pezzo.bounds[1]-(quality+(giri*quality)):
+            direction = (0,-1,0)
+        if direction == (0,-1,0) and punta.center[1] < pezzo.bounds[2]+(quality+(giri*quality)):
+            direction = (-1,0,0)
+        if direction == (-1,0,0) and punta.center[0] < pezzo.bounds[0]+(quality+(giri*quality)):
+            #ha fatto un giro
+            giri+=1
+            direction = (0,1,0)
 
-        time.sleep(0.2)
-        p.remove_actor(AtestoPunta)
-        AtestoPunta = p.add_text(text=GenerateTestoPunta(),position="left_edge",font_size=10)
+        #time.sleep(0.2)
+        #p.remove_actor(AtestoPunta)
+        #AtestoPunta = p.add_text(text=GenerateTestoPunta(),position="left_edge",font_size=10)
         
         points.append([round(punta.center[0],2), round(punta.center[1],2),round(punta.center[2]-SETTINGS['Punta']['Height']/2,2)])
         p.add_lines(np.array([points[-2],points[-1]]),color = 'yellow', width = 3)
-        print(f"Punti: {points}\n")
         p.update()
         #n_contacts = pezzo.collision(punta)[1]
         #if n_contacts:
