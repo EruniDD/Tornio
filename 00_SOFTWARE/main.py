@@ -1,6 +1,7 @@
 
 import os
 from tkinter import W
+from turtle import color
 from pyvista import examples
 import numpy as np
 
@@ -15,6 +16,7 @@ p = pv.Plotter()
 legno = pv.Box()
 pezzo = pv.PolyData()
 punta = pv.Cylinder()
+points = []
 
 def initializePlotter():
     global p
@@ -38,13 +40,14 @@ def initializeLegno():
     legno = pv.Box(bounds=bounds).triangulate()
     
     dimensioni = [round(abs(bounds[0])+abs(bounds[1]),2),round(abs(bounds[2])+abs(bounds[3]),2),round(abs(bounds[4])+abs(bounds[5]),2)]
-    p.add_text(f'Dimensioni Legno: \n x {dimensioni[0]}\ny {dimensioni[1]}\nz {dimensioni[2]}', 
+    AtestoLegno = p.add_text(f'Dimensioni Legno: \n x {dimensioni[0]}\ny {dimensioni[1]}\nz {dimensioni[2]}', 
                     position='upper_right', 
                     color='black',
-                    font_size=10)
+                    font_size=10,
+                )
     
     Alegno = p.add_mesh(legno,name=SETTINGS['Legno']['Name'], style=SETTINGS['Legno']['Style'], line_width=3, color="brown")
-    return Alegno
+    return [Alegno,AtestoLegno]
 
 def initializePezzo(src):
     global p
@@ -74,12 +77,13 @@ def initializePunta():
     global p
     global punta
     global legno
-    
+    global points
+
     punta = pv.Cylinder(radius=SETTINGS['Punta']['Radius'], direction=(0,0,1), center=(0,0,SETTINGS['Legno']['Dimensions']['z']+SETTINGS["Punta"]["Height"]),height=SETTINGS["Punta"]["Height"]).triangulate()
-    print(punta.center)
-    Apunta = p.add_mesh(punta, color="grey", style='')
-    
-    return Apunta
+    Apunta = p.add_mesh(punta, color="grey", style='Wireframe')
+    AtestoPunta = p.add_text(text=GenerateTestoPunta(),position="left_edge",font_size=10)
+    points.append([round(punta.center[0],2),round(punta.center[1],2),round((punta.center[2]-abs(SETTINGS['Punta']['Height']/2)),2)])
+    return [Apunta,AtestoPunta]
 
 def CanGo(direction, quality):
     global punta
@@ -115,45 +119,69 @@ def GoUp(direction,quality):
 def CanDown(quality):
     global punta
     global pezzo
+    global p
     punta.translate([0,0,-quality], inplace=True)
     collisions = pezzo.collision(punta)[1]
+    punta.translate([0,0,quality], inplace=True)
     if collisions:
-        #torna indietro
-        punta.translate([0,0,quality], inplace=True)
+        #torna indietro     
         return False
     else:
         return True
 
-def movement():
+def movement(AtestoPunta):
     global p
     global punta
     global legno
     global pezzo
+    global points 
 
     quality = SETTINGS['General']['Quality']
     
     direction = (0,1,0)
     #abbasso la punta
     punta.translate((0,0,-SETTINGS['Punta']["Height"]),inplace=True)
+
+    points.append([round(punta.center[0],2),round(punta.center[1],2),round(punta.center[2]-abs(SETTINGS['Punta']['Height']/2),2)])
+    p.add_lines(np.array([points[-2],points[-1]]),color = 'yellow', width = 3)
+    print(points)
+    p.update()
+
     height = 0
     while True:
-        if height > 0:
-            CanDown()
+        print(height)
+        while height > 0:
+            if CanDown(quality):
+                punta.translate([0,0,-quality])
+                height -= quality
+            else:
+                break
+
         if CanGo(direction,quality):
             #posso andarci
             pass
+
         else:
             #non posso andarci
             #provo ad alzarmi
-            height = GoUp(direction,quality)
+            height += GoUp(direction,quality)
             print(f"devo alzarmi di {round(height,1)}")
-            p.show()
+
         time.sleep(0.2)
+        p.remove_actor(AtestoPunta)
+        AtestoPunta = p.add_text(text=GenerateTestoPunta(),position="left_edge",font_size=10)
+        
+        points.append([round(punta.center[0],2), round(punta.center[1],2),round(punta.center[2]-SETTINGS['Punta']['Height']/2,2)])
+        p.add_lines(np.array([points[-2],points[-1]]),color = 'yellow', width = 3)
+        print(f"Punti: {points}\n")
         p.update()
         #n_contacts = pezzo.collision(punta)[1]
         #if n_contacts:
         #    pass
 
+def GenerateTestoPunta():
+    global punta
+    return f"Posizione punta:\nx {round(punta.center[0],2)}\ny {round(punta.center[1]+(SETTINGS['Punta']['Height']/2),2)}\nz {round(punta.center[2],2)}"
 
 def main():
     global p
@@ -162,15 +190,15 @@ def main():
     global punta
 
     initializePlotter()
-    Alegno = initializeLegno()
+    Alegno, AtestoLegno = initializeLegno()
     Apezzo = initializePezzo(src=f"{DIR}\\Pezzo.obj")
-    Apunta = initializePunta()
+    Apunta, AtestoPunta = initializePunta()
     legno = legno.boolean_intersection(pv.Box(bounds=pezzo.bounds).triangulate())
     p.remove_actor(Alegno)
     Alegno = p.add_mesh(legno, style = 'Wireframe')
     
     p.show(interactive_update=True)
-    movement()
+    movement(AtestoPunta)
     p.show()
 
 
