@@ -1,7 +1,7 @@
 
 import os
 from tkinter import W
-from turtle import color
+from turtle import color, width
 from pyvista import examples
 import numpy as np
 
@@ -129,6 +129,22 @@ def CanDown(quality):
     else:
         return True
 
+def ResetPositionPunta():
+    global punta
+    global p
+    global pezzo
+    
+    punta.translate([-round(punta.center[0],2),-round(punta.center[1],2),-abs(round(punta.center[2]-pezzo.bounds[5],2)+SETTINGS['Punta']['Height'])])
+    p.update()
+
+def GoNextLevel(livello):
+    global pezzo
+    global p
+    ResetPositionPunta()
+    punta.translate([0,0,-SETTINGS['Punta']['Height']*livello])
+    pass
+
+
 def movement(AtestoPunta):
     global p
     global punta
@@ -138,19 +154,20 @@ def movement(AtestoPunta):
 
     quality = SETTINGS['General']['Quality']
     giri = 1
+    livello = 1
 
     direction = (0,1,0)
     #abbasso la punta
     punta.translate((0,0,-SETTINGS['Punta']["Height"]),inplace=True)
 
     points.append([round(punta.center[0],2),round(punta.center[1],2),round(punta.center[2]-abs(SETTINGS['Punta']['Height']/2),2)])
-    p.add_lines(np.array([points[-2],points[-1]]),color = 'yellow', width = 3)
+    #p.add_lines(np.array([points[-2],points[-1]]),color = 'yellow', width = 3)
     #print(points)
     p.update()
 
     height = 0
     while True:
-        print(height)
+        #print(height)
         while height > 0:
             if CanDown(quality):
                 punta.translate([0,0,-quality])
@@ -168,22 +185,34 @@ def movement(AtestoPunta):
             height += GoUp(direction,quality)
             #print(f"devo alzarmi di {round(height,1)}")
         if direction == (0,1,0) and punta.center[1] > pezzo.bounds[3]-(quality+(giri*quality)):
+            print("Giro a +X")
             direction = (1,0,0)
         if direction == (1,0,0) and punta.center[0] > pezzo.bounds[1]-(quality+(giri*quality)):
+            print("Giro a -Y")
             direction = (0,-1,0)
         if direction == (0,-1,0) and punta.center[1] < pezzo.bounds[2]+(quality+(giri*quality)):
+            print("Giro a -X")
             direction = (-1,0,0)
+
         if direction == (-1,0,0) and punta.center[0] < pezzo.bounds[0]+(quality+(giri*quality)):
+            print("Ho fatto un giro e vado a +Y")
             #ha fatto un giro
             giri+=1
             direction = (0,1,0)
 
+        if [round(punta.center[0],2), round(punta.center[1],2),round(punta.center[2]-SETTINGS['Punta']['Height']/2,2)] in points:
+            livello+=1
+            height = 0
+            GoNextLevel(livello)
+            #p.add_mesh(pv.MultipleLines(points=points),color='Yellow')
+            #p.show()     
+        
         #time.sleep(0.2)
         #p.remove_actor(AtestoPunta)
         #AtestoPunta = p.add_text(text=GenerateTestoPunta(),position="left_edge",font_size=10)
         
         points.append([round(punta.center[0],2), round(punta.center[1],2),round(punta.center[2]-SETTINGS['Punta']['Height']/2,2)])
-        p.add_lines(np.array([points[-2],points[-1]]),color = 'yellow', width = 3)
+        #p.add_lines(np.array([points[-2],points[-1]]),color = 'yellow', width = 3)
         p.update()
         #n_contacts = pezzo.collision(punta)[1]
         #if n_contacts:
